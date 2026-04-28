@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team-Doro: Winner Stadium</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-color: #2c3e50;
+            --accent-color: #ff4757; 
+            --track-base: #e74c3c; 
+            --track-field: #2ed573; 
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif; background-color: var(--bg-color);
+            margin: 0; display: flex; justify-content: center; align-items: center;
+            height: 100vh; width: 100vw; overflow: hidden; color: var(--text-color);
+        }
+
+        /* [1. 메인 화면] */
+        #main-container {
+            display: flex; gap: 20px; width: 95%; max-width: 1200px; height: 85vh;
+        }
+
+        .card {
+            background: var(--card-bg); padding: 30px; border-radius: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.06); overflow-y: auto;
+        }
+        .setup-card { flex: 1; min-width: 350px; }
+        .list-card { flex: 1.2; }
+
+        h2 { margin-top: 0; font-weight: 800; font-size: 1.5rem; border-bottom: 2px solid #f8f9fa; padding-bottom: 15px; }
+
+        .form-group { display: flex; gap: 10px; margin: 25px 0; align-items: center; }
+        input { flex: 1; padding: 15px; border-radius: 12px; border: 1px solid #ddd; font-size: 1rem; }
+        
+        .color-circle { width: 50px; height: 50px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 0 10px #eee; }
+        .color-grid { display: none; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px; }
+        .dot { width: 100%; aspect-ratio: 1; border-radius: 50%; cursor: pointer; border: 2px solid #fff; }
+
+        .course-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 30px; }
+        .course-btn { 
+            padding: 15px; border: 2px solid #f0f0f0; border-radius: 15px; cursor: pointer; 
+            text-align: center; transition: 0.2s; background: #fff;
+        }
+        .course-btn.active { border-color: var(--accent-color); background: #fff5f6; font-weight: bold; color: var(--accent-color); }
+
+        .record-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px; background: #f8f9fa; border-radius: 12px; margin-bottom: 10px;
+        }
+        .del-btn { color: #ccc; cursor: pointer; font-weight: bold; padding: 5px; }
+        .del-btn:hover { color: var(--accent-color); }
+
+        /* [2. 레이스 스크린 - 절대 안 잘리는 비율] */
+        #race-screen {
+            display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: space-between; position: relative; padding: 40px 0;
+        }
+        .hud {
+            background: rgba(255,255,255,0.9); padding: 10px 60px;
+            border-radius: 60px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); z-index: 100;
+        }
+        #timer-text { font-size: 4rem; font-weight: 900; letter-spacing: -2px; }
+
+        .track-box { 
+            width: 100%; flex: 1; display: flex; align-items: center; justify-content: center; position: relative;
+        }
+        .stadium-svg { 
+            width: 90%; height: 100%; max-height: 65vh; /* 높이 제한으로 잘림 방지 */
+            overflow: visible;
+        }
+        
+        .field { fill: var(--track-field); } 
+        .road { fill: none; stroke: var(--track-base); stroke-width: 60; stroke-linecap: round; stroke-linejoin: round; } 
+        .guide { fill: none; stroke: none; }
+
+        #runner {
+            position: absolute; font-size: 4.5rem; 
+            transform: translate(-50%, -50%); 
+            z-index: 10; pointer-events: none;
+            transition: transform 0.1s linear;
+        }
+
+        .exit-btn { 
+            background: none; border: 1px solid #ddd; padding: 10px 20px; border-radius: 10px; 
+            color: #999; cursor: pointer; font-weight: 600;
+        }
+
+        /* 완주 모달 */
+        #modal {
+            display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.7);
+            z-index: 200; justify-content: center; align-items: center; backdrop-filter: blur(10px);
+        }
+        .modal-card { background: #fff; padding: 50px; border-radius: 35px; text-align: center; }
+
+        .big-btn { width: 100%; padding: 20px; background: var(--accent-color); color: #fff; border: none; border-radius: 15px; font-weight: 800; cursor: pointer; font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+
+    <div id="main-container">
+        <div class="card setup-card">
+            <h2>⚙️ 레이스 설정</h2>
+            <div class="form-group">
+                <input type="text" id="name-tag" placeholder="닉네임 입력">
+                <div id="color-prev" class="color-circle" style="background: #ff4757;" onclick="togglePalette()"></div>
+            </div>
+            
+            <div id="palette" class="color-grid">
+                <div class="dot" style="background: #ff4757;" onclick="setCol('#ff4757')"></div>
+                <div class="dot" style="background: #2ed573;" onclick="setCol('#2ed573')"></div>
+                <div class="dot" style="background: #1e90ff;" onclick="setCol('#1e90ff')"></div>
+                <div class="dot" style="background: #ffa502;" onclick="setCol('#ffa502')"></div>
+                <div class="dot" style="background: #8e44ad;" onclick="setCol('#8e44ad')"></div>
+            </div>
+
+            <div class="course-grid">
+                <div class="course-btn" onclick="setMode(0.5, this, '1')">⚡ 테스트<br><b>30초</b></div>
+                <div class="course-btn" onclick="setMode(15, this, '1')">🌱 초급<br><b>15분</b></div>
+                <div class="course-btn" onclick="setMode(30, this, '2')">🏎️ 중급<br><b>30분</b></div>
+                <div class="course-btn" onclick="setMode(50, this, '3')">🔥 상급<br><b>50분</b></div>
+            </div>
+            <button class="big-btn" onclick="initRace()">레이스 시작!</button>
+        </div>
+
+        <div class="card list-card">
+            <h2>🏆 완주 기록</h2>
+            <div id="history-list"></div>
+        </div>
+    </div>
+
+    <div id="race-screen">
+        <div class="hud">
+            <div id="timer-text">00:00</div>
+        </div>
+        
+        <div class="track-box">
+            <svg class="stadium-svg" viewBox="0 0 1100 650" preserveAspectRatio="xMidYMid meet">
+                <g id="g1" style="display:none;">
+                    <rect class="field" x="150" y="125" width="800" height="400" rx="200" ry="200" />
+                    <rect class="road" x="150" y="125" width="800" height="400" rx="200" ry="200" />
+                    <rect id="p1" class="guide" x="150" y="125" width="800" height="400" rx="200" ry="200" />
+                </g>
+                <g id="g2" style="display:none;">
+                    <path class="field" d="M 150 325 C 150 75, 450 75, 450 325 S 750 575, 750 325 S 1050 75, 1050 325" />
+                    <path class="road" d="M 150 325 C 150 75, 450 75, 450 325 S 750 575, 750 325 S 1050 75, 1050 325" />
+                    <path id="p2" class="guide" d="M 150 325 C 150 75, 450 75, 450 325 S 750 575, 750 325 S 1050 75, 1050 325" />
+                </g>
+                <g id="g3" style="display:none;">
+                    <path class="field" d="M 150 125 L 950 125 L 950 525 L 150 525 L 150 325 L 800 325 L 800 425 L 300 425 L 300 225" />
+                    <path class="road" d="M 150 125 L 950 125 L 950 525 L 150 525 L 150 325 L 800 325 L 800 425 L 300 425 L 300 225" />
+                    <path id="p3" class="guide" d="M 150 125 L 950 125 L 950 525 L 150 525 L 150 325 L 800 325 L 800 425 L 300 425 L 300 225" />
+                </g>
+            </svg>
+            <div id="runner">🏃</div>
+        </div>
+        
+        <button class="exit-btn" onclick="location.reload()">기권하고 돌아가기</button>
+    </div>
+
+    <div id="modal">
+        <div class="modal-card">
+            <div style="font-size: 5rem;">🏆</div>
+            <h2 style="border:none;">완주 성공!</h2>
+            <button class="big-btn" onclick="saveRecord()">기록 저장</button>
+        </div>
+    </div>
+
+    <script>
+        let goalSec = 0, leftSec = 0, trackNum = '1', timerId, animId;
+        let logs = [];
+
+        function togglePalette() {
+            const p = document.getElementById('palette');
+            p.style.display = p.style.display === 'grid' ? 'none' : 'grid';
+        }
+        function setCol(c) {
+            document.getElementById('color-prev').style.background = c;
+            document.documentElement.style.setProperty('--accent-color', c);
+            togglePalette();
+        }
+        function setMode(m, el, t) {
+            goalSec = m * 60; trackNum = t;
+            document.querySelectorAll('.course-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function initRace() {
+            const name = document.getElementById('name-tag').value;
+            if(!name || !goalSec) return alert("이름과 코스를 선택해 주세요!");
+
+            document.getElementById('main-container').style.display = 'none';
+            document.getElementById('race-screen').style.display = 'flex';
+            
+            ['g1','g2','g3'].forEach(id => document.getElementById(id).style.display = 'none');
+            document.getElementById('g' + trackNum).style.display = 'block';
+
+            leftSec = goalSec;
+            updateUI();
+            startMove();
+
+            timerId = setInterval(() => {
+                leftSec--; updateUI();
+                if(leftSec <= 0) {
+                    clearInterval(timerId); cancelAnimationFrame(animId);
+                    document.getElementById('modal').style.display = 'flex';
+                }
+            }, 1000);
+        }
+
+        function updateUI() {
+            const m = Math.floor(leftSec / 60), s = leftSec % 60;
+            document.getElementById('timer-text').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }
+
+        function startMove() {
+            const path = document.getElementById('p' + trackNum);
+            const runner = document.getElementById('runner');
+            const svg = document.querySelector('.stadium-svg');
+            const len = path.getTotalLength();
+            const startTime = Date.now();
+
+            function frame() {
+                let prog = (Date.now() - startTime) / (goalSec * 1000);
+                if(prog > 1) prog = 1;
+
+                const pos = path.getPointAtLength(prog * len);
+                const nextPos = path.getPointAtLength(Math.min(prog * len + 1, len));
+
+                // 🌟 방향 반전 로직 (이모지가 왼쪽을 보므로 오른쪽 이동 시 flip)
+                if (nextPos.x > pos.x) {
+                    runner.style.transform = "translate(-50%, -50%) scaleX(-1)";
+                } else if (nextPos.x < pos.x) {
+                    runner.style.transform = "translate(-50%, -50%) scaleX(1)";
+                }
+
+                const pt = svg.createSVGPoint();
+                pt.x = pos.x; pt.y = pos.y;
+                const final = pt.matrixTransform(svg.getCTM());
+
+                runner.style.left = final.x + 'px';
+                runner.style.top = final.y + 'px';
+
+                if(prog < 1 && leftSec > 0) animId = requestAnimationFrame(frame);
+            }
+            animId = requestAnimationFrame(frame);
+        }
+
+        function saveRecord() {
+            const name = document.getElementById('name-tag').value;
+            const color = document.getElementById('color-prev').style.background;
+            logs.push({ name, min: goalSec/60, color });
+            
+            document.getElementById('history-list').innerHTML = logs.map((l, i) => `
+                <div class="record-item">
+                    <span><b style="color:${l.color}">●</b> ${l.name} (${l.min}분)</span>
+                    <span class="del-btn" onclick="delLog(${i})">×</span>
+                </div>
+            `).join('');
+
+            document.getElementById('modal').style.display = 'none';
+            document.getElementById('race-screen').style.display = 'none';
+            document.getElementById('main-container').style.display = 'flex';
+        }
+
+        function delLog(i) {
+            if(confirm("기록을 삭제할까요?")) {
+                logs.splice(i, 1);
+                saveRecord();
+            }
+        }
+    </script>
+</body>
+</html>
